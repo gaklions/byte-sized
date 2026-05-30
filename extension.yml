@@ -6,9 +6,9 @@ extension:
   version: "0.1.0"
   description: "Maintain a versioned business rules knowledge graph the spec-kit agent can navigate on demand, consuming rules one \"bite\" at a time, keeping the active context window small."
   author: "byte-sized contributors"
-  repository: "https://github.com/your-org/spec-kit-byte-sized"
+  repository: "https://github.com/gaklions/byte-sized"
   license: MIT
-  homepage: "https://github.com/your-org/spec-kit-byte-sized"
+  homepage: "https://github.com/gaklions/byte-sized"
 
 requires:
   speckit_version: ">=0.8.0"

@@ -1,4 +1,12 @@
-# spec-kit-byte-sized
+<div align="center">
+
+  <img src="./assets/graphics/info-graphic-600x600.png" alt="ByteSize banner" width="600">
+
+
+  # spec-kit-byte-sized
+</div>
+
+
 
 A [Spec Kit](https://github.com/github/spec-kit) extension that maintains a versioned **business rules knowledge graph** in your repo and lets the spec-kit agent **navigate** it on demand — so the agent only loads a tiny (bite-sized), relevance-ranked projection into its context window instead of the whole rules corpus.
 
@@ -21,7 +29,7 @@ As a Spec Kit project grows, business rules accumulate across specs, clarificati
 specify extension add --dev /path/to/spec-kit-byte-sized
 
 # Or from a GitHub release archive
-specify extension add byte-sized --from https://github.com/your-org/spec-kit-byte-sized/archive/refs/tags/v0.1.0.zip
+specify extension add byte-sized --from https://github.com/gaklions/byte-sized/archive/refs/tags/v0.1.0.zip
 ```
 
 After installing, scaffold storage:

@@ -1,0 +1,74 @@
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release (e.g. v0.1.0). Must already exist.'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: build & publish zip
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "ref=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+            echo "name=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "ref=${GITHUB_REF}" >> "$GITHUB_OUTPUT"
+            echo "name=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.tag.outputs.ref }}
+          fetch-depth: 0
+
+      - name: Build release zip
+        id: build
+        run: |
+          set -euo pipefail
+          VERSION="${{ steps.tag.outputs.name }}"
+          PKG="spec-kit-byte-sized-${VERSION}"
+          STAGE="${RUNNER_TEMP}/${PKG}"
+          mkdir -p "${STAGE}"
+
+          rsync -a \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='selftest' \
+            --exclude='*.zip' \
+            ./ "${STAGE}/"
+
+          ZIP="${PKG}.zip"
+          (cd "${RUNNER_TEMP}" && zip -r "${GITHUB_WORKSPACE}/${ZIP}" "${PKG}" >/dev/null)
+          ls -lh "${ZIP}"
+          echo "zip=${ZIP}" >> "$GITHUB_OUTPUT"
+
+      - name: Create / update GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          TAG="${{ steps.tag.outputs.name }}"
+          ZIP="${{ steps.build.outputs.zip }}"
+
+          if gh release view "${TAG}" >/dev/null 2>&1; then
+            gh release upload "${TAG}" "${ZIP}" --clobber
+          else
+            gh release create "${TAG}" "${ZIP}" \
+              --title "${TAG}" \
+              --generate-notes
+          fi
