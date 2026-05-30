@@ -1,0 +1,43 @@
+name: selftest
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  bash:
+    name: bash (ubuntu-latest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install jq + yq
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq
+          sudo curl -fsSL https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -o /usr/local/bin/yq
+          sudo chmod +x /usr/local/bin/yq
+          jq --version && yq --version
+      - name: Make scripts executable
+        run: chmod +x scripts/bash/*.sh selftest/scripts/*.sh
+      - name: Run selftest
+        run: bash selftest/scripts/selftest.sh
+
+  powershell:
+    name: powershell (windows-latest)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install jq + yq
+        shell: pwsh
+        run: |
+          choco install jq -y --no-progress
+          $yq = "$env:RUNNER_TEMP\yq.exe"
+          Invoke-WebRequest -Uri "https://github.com/mikefarah/yq/releases/latest/download/yq_windows_amd64.exe" -OutFile $yq
+          Copy-Item $yq "C:\ProgramData\chocolatey\bin\yq.exe"
+          jq --version
+          yq --version
+      - name: Run selftest
+        shell: pwsh
+        run: pwsh -NoProfile -File selftest/scripts/selftest.ps1

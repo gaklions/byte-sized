@@ -1,0 +1,12 @@
+# Ignore local sandbox installations + temp test output
+sandbox/
+tmp/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/

@@ -1,0 +1,55 @@
+# byte-sized configuration
+# All values shown are defaults; uncomment + adjust to override.
+
+storage:
+  # Where rule files and the index live (relative to repo root).
+  rules_dir: ".specify/rules"
+  # Prefix used when allocating new rule IDs (BR-<DOMAIN>-NNN).
+  id_prefix: "BR"
+
+relevance:
+  # Hard cap on the number of rules a `query`/`surface` call returns.
+  max_results: 12
+  # Minimum lexical score (0-1) before a rule is included in results.
+  min_score: 0.2
+  # N-hop neighbour expansion for `show` (and optionally `surface`).
+  include_neighbors: 1
+  # Output-size guard for projections (truncate beyond this size, KB).
+  max_projection_kb: 8
+
+extraction:
+  # When true, `after_specify` / `after_clarify` hooks propose drafts automatically.
+  auto_propose: true
+  # When true, drafts must be promoted via `byte-sized.add` before becoming active.
+  require_review: true
+  # Subdirectory under rules_dir where staged drafts live.
+  drafts_dir: "_drafts"
+
+conflict_detection:
+  enabled: true
+  # Token pairs that, when both appear across two rules in the same domain, trigger a conflict candidate.
+  # Add domain-specific antonym pairs as needed.
+  antonym_pairs:
+    - ["must", "must not"]
+    - ["required", "forbidden"]
+    - ["allow", "deny"]
+    - ["enable", "disable"]
+    - ["always", "never"]
+
+# Whitelist of allowed domains. New domains can be added; rules-validate warns on values outside this list.
+domains:
+  - architecture
+  - auth
+  - code
+  - compliance
+  - data
+  - pricing
+  - security
+  - tech
+  - ux
+
+# Domain hints applied to surface() per phase (used by `before_*` hooks).
+phase_hints:
+  before_specify: []
+  before_plan: ["architecture", "tech"]
+  before_implement: ["code", "compliance"]

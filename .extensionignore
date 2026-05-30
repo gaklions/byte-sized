@@ -1,0 +1,15 @@
+# Development files
+.github/
+selftest/tests/
+tests/
+.gitignore
+.vscode/
+
+# Build artefacts
+__pycache__/
+*.pyc
+dist/
+node_modules/
+
+# Documentation source (the README is kept)
+docs/_src/

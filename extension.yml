@@ -1,0 +1,124 @@
+schema_version: "1.0"
+
+extension:
+  id: byte-sized
+  name: "Byte-Sized Business Rules"
+  version: "0.1.0"
+  description: "Maintain a versioned business rules knowledge graph the spec-kit agent can navigate on demand, consuming rules one \"bite\" at a time, keeping the active context window small."
+  author: "byte-sized contributors"
+  repository: "https://github.com/your-org/spec-kit-byte-sized"
+  license: MIT
+  homepage: "https://github.com/your-org/spec-kit-byte-sized"
+
+requires:
+  speckit_version: ">=0.8.0"
+  tools:
+    - name: yq
+      required: true
+      version: ">=4.0.0"
+    - name: jq
+      required: true
+      version: ">=1.6"
+
+provides:
+  commands:
+    - name: speckit.byte-sized.init
+      file: commands/speckit.byte-sized.init.md
+      description: "Scaffold the .specify/rules/ knowledge graph in this project."
+    - name: speckit.byte-sized.baseline
+      file: commands/speckit.byte-sized.baseline.md
+      description: "Brownfield baseline pass: sweep the existing repo and stage candidate rules for review."
+    - name: speckit.byte-sized.add
+      file: commands/speckit.byte-sized.add.md
+      description: "Add a new business rule (with conflict pre-check) and update the graph index."
+    - name: speckit.byte-sized.query
+      file: commands/speckit.byte-sized.query.md
+      description: "Search the rules graph and return a compact, token-efficient projection."
+    - name: speckit.byte-sized.list
+      file: commands/speckit.byte-sized.list.md
+      description: "List rules grouped by domain and status."
+    - name: speckit.byte-sized.show
+      file: commands/speckit.byte-sized.show.md
+      description: "Show a single rule plus optional N-hop neighbors."
+    - name: speckit.byte-sized.link
+      file: commands/speckit.byte-sized.link.md
+      description: "Add or remove an edge between two rules."
+    - name: speckit.byte-sized.extract
+      file: commands/speckit.byte-sized.extract.md
+      description: "Extract candidate rules from a spec or clarification log into the staging area for review."
+    - name: speckit.byte-sized.analyze
+      file: commands/speckit.byte-sized.analyze.md
+      description: "Run validate + coverage + conflict detection across the graph."
+    - name: speckit.byte-sized.validate
+      file: commands/speckit.byte-sized.validate.md
+      description: "Check graph integrity (ID uniqueness, broken edges, frontmatter conformance)."
+    - name: speckit.byte-sized.surface
+      file: commands/speckit.byte-sized.surface.md
+      description: "Hook-only entry point: surface a compact projection of relevant rules for the active phase."
+
+  config:
+    - name: "byte-sized-config.yml"
+      template: "config-template.yml"
+      description: "byte-sized configuration (storage path, domains, relevance caps, extraction policy)."
+      required: false
+
+hooks:
+  before_specify:
+    command: speckit.byte-sized.surface
+    optional: false
+    description: "Surface rules relevant to the requested feature before the spec is drafted."
+  after_specify:
+    command: speckit.byte-sized.extract
+    optional: true
+    prompt: "Extract candidate business rules from the new specification?"
+    description: "Stage candidate rules captured during specification."
+  after_clarify:
+    command: speckit.byte-sized.extract
+    optional: true
+    prompt: "Capture rules clarified in this round into the graph?"
+    description: "Stage candidate rules captured during clarification."
+  before_plan:
+    command: speckit.byte-sized.surface
+    optional: false
+    description: "Surface architecture/tech rules before planning."
+  before_implement:
+    command: speckit.byte-sized.surface
+    optional: false
+    description: "Surface coding/compliance rules before implementation."
+  after_analyze:
+    command: speckit.byte-sized.analyze
+    optional: true
+    prompt: "Run byte-sized coverage and conflict analysis?"
+    description: "Cross-check tasks against the rules graph and flag gaps or conflicts."
+
+tags:
+  - "knowledge-graph"
+  - "business-rules"
+  - "context-management"
+  - "governance"
+
+defaults:
+  storage:
+    rules_dir: ".specify/rules"
+    id_prefix: "BR"
+  relevance:
+    max_results: 12
+    min_score: 0.2
+    include_neighbors: 1
+    max_projection_kb: 8
+  extraction:
+    auto_propose: true
+    require_review: true
+    drafts_dir: "_drafts"
+  conflict_detection:
+    enabled: true
+  domains:
+    - architecture
+    - auth
+    - code
+    - compliance
+    - data
+    - pricing
+    - security
+    - tech
+    - ux
