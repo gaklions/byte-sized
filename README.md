@@ -29,7 +29,7 @@ As a Spec Kit project grows, business rules accumulate across specs, clarificati
 specify extension add --dev /path/to/spec-kit-byte-sized
 
 # Or from a GitHub release archive
-specify extension add byte-sized --from https://github.com/gaklions/byte-sized/archive/refs/tags/v0.2.0.zip
+specify extension add byte-sized --from https://github.com/gaklions/byte-sized/archive/refs/tags/v0.2.1.zip
 ```
 
 After installing, scaffold storage:

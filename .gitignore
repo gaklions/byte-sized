@@ -1,7 +1,19 @@
 # Ignore local sandbox installations + temp test output
 sandbox/
 tmp/
+.tmp-*/
+*.tmp/
+.tmp-byte-sized/
 *.log
+
+# Python (used by the review portal)
+__pycache__/
+*.pyc
+*.pyo
+
+# Release artifacts (the release workflow builds these in CI; ignore stray
+# local copies from running `gh release create` or the wrapper by hand).
+spec-kit-byte-sized-*.zip
 
 # OS
 .DS_Store

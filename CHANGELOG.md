@@ -3,7 +3,17 @@
 All notable changes to this extension are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.2.1] - 2026-05-30
+
+### Added
+
+- `/speckit.byte-sized.init` now pre-creates `.specify/bites/.tmp-byte-sized/` and appends `.tmp-byte-sized/` to the user's project root `.gitignore` (idempotent), so the agent has a documented scratch directory for `/baseline` and `/add` payloads that is automatically excluded from source control.
+
+### Changed
+
+- `/speckit.byte-sized.baseline` and `/speckit.byte-sized.add` prompts updated with an explicit scratch-file convention: per-batch / per-stub YAML payloads must be written to `.specify/bites/.tmp-byte-sized/<name>.yml` rather than the repo root, and removed after a successful stage / add call.
+
+## [0.2.0] - 2026-05-30
 
 ### Changed — BREAKING
 

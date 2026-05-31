@@ -10,9 +10,23 @@ $root = Get-BsRepoRoot
 $bitesDir = Get-BsBitesDir -Root $root
 $extDir = Join-Path $root '.specify/extensions/byte-sized'
 
-foreach ($sub in @('domains','_drafts','_archive')) {
+foreach ($sub in @('domains','_drafts','_archive','.tmp-byte-sized')) {
     $path = Join-Path $bitesDir $sub
     if (-not (Test-Path $path)) { New-Item -ItemType Directory -Path $path | Out-Null }
+}
+
+# Make sure the scratch folder is excluded from source control. Append a single
+# entry to the project root .gitignore (creating it if missing). Idempotent:
+# we only touch the file if the marker isn't already present.
+$rootGitignore = Join-Path $root '.gitignore'
+$marker = '.tmp-byte-sized/'
+$existing = if (Test-Path $rootGitignore) { Get-Content -LiteralPath $rootGitignore } else { @() }
+if ($existing -notcontains $marker) {
+    $append = ''
+    if ((Test-Path $rootGitignore) -and (Get-Item $rootGitignore).Length -gt 0) { $append += "`n" }
+    $append += "# Added by byte-sized: agent-scratch directories created during /speckit.byte-sized.{baseline,add}.`n"
+    $append += "$marker`n"
+    Add-Content -LiteralPath $rootGitignore -Value $append -NoNewline -Encoding utf8
 }
 
 $readme = Join-Path $bitesDir 'README.md'

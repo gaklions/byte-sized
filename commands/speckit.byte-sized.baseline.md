@@ -54,6 +54,9 @@ $ARGUMENTS
    4. Pipe the YAML to the stage command:
       - Bash: `printf '%s' "$candidates" | {SCRIPT_SH} --stage --batch <batch-id>`
       - PowerShell: `$candidates | {SCRIPT_PS} -Mode stage -Batch <batch-id>`
+
+      **Scratch-file convention.** If your tooling cannot reliably inline a multi-line YAML payload through stdin (most agents will hit this), write the payload to `.specify/bites/.tmp-byte-sized/<batch-id>.yml` first, then `cat`/`Get-Content` that file into the stage command. **Never write scratch files at the repo root** — `.tmp-byte-sized/` belongs under `.specify/bites/` (the directory is pre-created by `/speckit.byte-sized.init`). Delete the scratch file after the stage call succeeds; if the batch fails, leave it in place for inspection.
+
       The stage call delegates to `bites-extract.sh` which de-duplicates against the existing index (statement token-overlap ≥ 0.7 → dropped) and writes survivors to `.specify/bites/_drafts/baseline-<batch>-<timestamp>.yml`.
    5. Capture the returned `{drafts_file, kept, dropped_as_duplicate}` and accumulate the counts.
 

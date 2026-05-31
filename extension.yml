@@ -3,7 +3,7 @@ schema_version: "1.0"
 extension:
   id: byte-sized
   name: "Byte-Sized Business Bites"
-  version: "0.1.0"
+  version: "0.2.1"
   description: "Maintain a versioned business bites knowledge graph the spec-kit agent can navigate on demand, consuming bites one \"bite\" at a time, keeping the active context window small."
   author: "byte-sized contributors"
   repository: "https://github.com/gaklions/byte-sized"

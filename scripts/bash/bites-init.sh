@@ -17,6 +17,25 @@ EXT_DIR="$ROOT/.specify/extensions/byte-sized"
 
 mkdir -p "$BITES_DIR/domains" "$BITES_DIR/_drafts" "$BITES_DIR/_archive"
 
+# Pre-create the agent-scratch directory under .specify/bites/. The /baseline
+# and /add command prompts direct the agent to write per-batch / per-stub YAML
+# payloads here instead of the repo root; creating it up-front avoids the agent
+# falling back to a root-level path because the directory didn't exist.
+mkdir -p "$BITES_DIR/.tmp-byte-sized"
+
+# Make sure the scratch folder is excluded from source control. Append a single
+# entry to the project root .gitignore (creating it if missing). Idempotent:
+# we only touch the file if the marker isn't already present.
+ROOT_GITIGNORE="$ROOT/.gitignore"
+GITIGNORE_MARKER='.tmp-byte-sized/'
+if [[ ! -f "$ROOT_GITIGNORE" ]] || ! grep -Fxq "$GITIGNORE_MARKER" "$ROOT_GITIGNORE"; then
+  {
+    [[ -f "$ROOT_GITIGNORE" && -s "$ROOT_GITIGNORE" ]] && printf '\n'
+    printf '# Added by byte-sized: agent-scratch directories created during /speckit.byte-sized.{baseline,add}.\n'
+    printf '%s\n' "$GITIGNORE_MARKER"
+  } >> "$ROOT_GITIGNORE"
+fi
+
 if [[ ! -f "$BITES_DIR/README.md" ]]; then
   cat > "$BITES_DIR/README.md" <<'EOF'
 # Byte-Sized Business Bites
