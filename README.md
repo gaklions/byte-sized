@@ -29,7 +29,7 @@ As a Spec Kit project grows, business rules accumulate across specs, clarificati
 specify extension add --dev /path/to/spec-kit-byte-sized
 
 # Or from a GitHub release archive
-specify extension add byte-sized --from https://github.com/gaklions/byte-sized/archive/refs/tags/v0.2.1.zip
+specify extension add byte-sized --from https://github.com/gaklions/byte-sized/archive/refs/tags/v0.2.2.zip
 ```
 
 After installing, scaffold storage:
@@ -65,7 +65,7 @@ Candidates are staged in `.specify/bites/_drafts/baseline-<batch>-<ts>.yml`. Rev
 |----------------------------------|-------------------------------------------------------------------------------|
 | `speckit.byte-sized.init`       | Scaffold `.specify/bites/` and copy the config template.                      |
 | `speckit.byte-sized.baseline`   | One-shot brownfield sweep: extract candidate bites from existing docs/specs/code into `_drafts/`. |
-| `speckit.byte-sized.add`        | Guided bite creation with a conflict pre-check.                               |
+| `speckit.byte-sized.add`        | Author a bite in plain English (or structured form); agent classifies it and runs a conflict pre-check. |
 | `speckit.byte-sized.query`      | Compact, token-efficient lookup. Returns `{id, statement, domain, tags}`.     |
 | `speckit.byte-sized.list`       | Human-facing summary grouped by domain/status.                                |
 | `speckit.byte-sized.show`       | Full markdown of one or more bites, with optional N-hop neighbour expansion.  |
@@ -75,6 +75,27 @@ Candidates are staged in `.specify/bites/_drafts/baseline-<batch>-<ts>.yml`. Rev
 | `speckit.byte-sized.validate`   | Graph integrity only (cheaper than `analyze`).                                |
 | `speckit.byte-sized.surface`    | Hook-only: inject relevant bites into the active phase context.               |
 | `speckit.byte-sized.portal`     | Launch the local review portal (web UI) for triaging drafts and navigating the graph. |
+
+### Authoring a bite in plain English
+
+You don't need to hand-write YAML. Type the rule and the agent classifies it:
+
+```text
+/speckit.byte-sized.add Admins must use MFA for production access
+```
+
+The agent proposes a classification and asks once before writing:
+
+```text
+statement: Admins must use MFA for production access.
+domain:    auth
+tags:      [admin, mfa, production, access]
+rationale:
+
+Add this bite? (yes / no / edit)
+```
+
+On `yes`, the conflict pre-check runs and the bite is written under `.specify/bites/domains/auth/`. A structured shortcut (`statement="..." domain=... tags=...,...`) is also accepted for power users.
 
 ## Hooks
 

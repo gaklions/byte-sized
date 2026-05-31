@@ -3,6 +3,13 @@
 All notable changes to this extension are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.2] - 2026-05-31
+
+### Changed
+
+- `/speckit.byte-sized.add` now documents plain-English authoring as the primary input mode: the agent loads the configured `domains:` list, infers `statement` / `domain` / `tags` autonomously, and presents a single `yes / no / edit` confirmation gate before writing. The structured `key=value` form is preserved as a power-user shortcut. Novel domains are handled with a closest-match suggestion plus an explicit warning that `bites-validate` will flag values outside the allow-list. No script or schema changes.
+- README updated with an "Authoring a bite in plain English" example showing the new confirmation prompt.
+
 ## [0.2.1] - 2026-05-30
 
 ### Added
