@@ -1,17 +1,17 @@
 ---
 description: "Run validate + coverage + conflict detection across the graph."
 scripts:
-  sh: ../../scripts/bash/rules-validate.sh
-  ps: ../../scripts/powershell/rules-validate.ps1
-  coverage_sh: ../../scripts/bash/rules-coverage.sh
-  coverage_ps: ../../scripts/powershell/rules-coverage.ps1
-  conflict_sh: ../../scripts/bash/rules-conflict.sh
-  conflict_ps: ../../scripts/powershell/rules-conflict.ps1
+  sh: ../../scripts/bash/bites-validate.sh
+  ps: ../../scripts/powershell/bites-validate.ps1
+  coverage_sh: ../../scripts/bash/bites-coverage.sh
+  coverage_ps: ../../scripts/powershell/bites-coverage.ps1
+  conflict_sh: ../../scripts/bash/bites-conflict.sh
+  conflict_ps: ../../scripts/powershell/bites-conflict.ps1
 ---
 
 # /speckit.byte-sized.analyze
 
-Full analysis pass over the rules graph: integrity + coverage of the active feature + cross-rule conflicts.
+Full analysis pass over the bites graph: integrity + coverage of the active feature + cross-bite conflicts.
 
 ## User Input
 
@@ -34,7 +34,7 @@ $ARGUMENTS
    - PowerShell: `{SCRIPT_CONFLICT_PS}`
 4. Render a single markdown report:
    ```
-   ## Rules graph analysis
+   ## Bites graph analysis
 
    ### Integrity
    - errors: <N>; warnings: <M>
@@ -42,7 +42,7 @@ $ARGUMENTS
 
    ### Coverage of <file>
    - Uncovered FR/NFR/TASK ids: <list>
-   - Orphan rules (no source): <list>
+   - Orphan bites (no source): <list>
    - Per-requirement coverage: <table>
 
    ### Conflicts

@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# rules-baseline.sh — discover candidate source files for a brownfield baseline pass.
+# bites-baseline.sh — discover candidate source files for a brownfield baseline pass.
 #
 # Modes:
 #   --discover                      Walk the repo, group files into batches, emit JSON manifest.
 #   --stage --batch <label>         Read a YAML array of candidate stubs on stdin and stage them
 #                                   to _drafts/baseline-<label>-<timestamp>.yml (delegates to
-#                                   rules-extract.sh's dedup logic).
+#                                   bites-extract.sh's dedup logic).
 #
 # Common flags:
 #   --include  <comma-glob-list>    Override default include globs.
@@ -39,7 +39,7 @@ while (( $# > 0 )); do
     --scope)    SCOPE="$2"; shift 2 ;;
     --max-files-per-batch) MAX_FILES="$2"; shift 2 ;;
     --max-bytes-per-batch) MAX_BYTES="$2"; shift 2 ;;
-    *) echo "rules-baseline: unknown arg: $1" >&2; exit 2 ;;
+    *) echo "bites-baseline: unknown arg: $1" >&2; exit 2 ;;
   esac
 done
 
@@ -59,27 +59,27 @@ default_includes() {
   esac
 }
 
-DEFAULT_EXCLUDES="node_modules/**,.git/**,.venv/**,venv/**,dist/**,build/**,out/**,target/**,coverage/**,.specify/rules/**,.specify/extensions/**,_drafts/**,_archive/**"
+DEFAULT_EXCLUDES="node_modules/**,.git/**,.venv/**,venv/**,dist/**,build/**,out/**,target/**,coverage/**,.specify/bites/**,.specify/extensions/**,_drafts/**,_archive/**"
 
 includes_csv="${INCLUDE:-$(default_includes "$SCOPE")}"
 excludes_csv="${DEFAULT_EXCLUDES}${EXCLUDE:+,$EXCLUDE}"
 
-# ----- Stage mode: delegate to rules-extract.sh -----
+# ----- Stage mode: delegate to bites-extract.sh -----
 
 if [[ "$MODE" == "stage" ]]; then
   if [[ -z "$BATCH" ]]; then
-    echo "rules-baseline: --stage requires --batch <label>" >&2
+    echo "bites-baseline: --stage requires --batch <label>" >&2
     exit 2
   fi
   CFG="$(bs_config_path "$ROOT")"
-  RULES_DIR="$(bs_rules_dir "$ROOT")"
+  BITES_DIR="$(bs_bites_dir "$ROOT")"
   DRAFTS_REL="$(bs_cfg "$CFG" '.extraction.drafts_dir' '_drafts')"
-  DRAFTS_DIR="$RULES_DIR/$DRAFTS_REL"
+  DRAFTS_DIR="$BITES_DIR/$DRAFTS_REL"
   mkdir -p "$DRAFTS_DIR"
   ts="$(date -u +%Y%m%dT%H%M%SZ)"
   out="$DRAFTS_DIR/baseline-${BATCH}-${ts}.yml"
   # The extract script handles dedup; we pass the synthetic "feature" as baseline:<batch>.
-  exec "$SCRIPT_DIR/rules-extract.sh" \
+  exec "$SCRIPT_DIR/bites-extract.sh" \
     --source-file "baseline:${BATCH}" \
     --feature "baseline-${BATCH}" \
     --out "$out"

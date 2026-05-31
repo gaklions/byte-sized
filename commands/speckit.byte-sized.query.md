@@ -1,13 +1,13 @@
 ---
-description: "Search the rules graph and return a compact, token-efficient projection."
+description: "Search the bites graph and return a compact, token-efficient projection."
 scripts:
-  sh: ../../scripts/bash/rules-query.sh
-  ps: ../../scripts/powershell/rules-query.ps1
+  sh: ../../scripts/bash/bites-query.sh
+  ps: ../../scripts/powershell/bites-query.ps1
 ---
 
 # /speckit.byte-sized.query
 
-Search the business rules graph.
+Search the business bites graph.
 
 ## User Input
 
@@ -22,9 +22,9 @@ $ARGUMENTS
    - Bash: `{SCRIPT_SH} [--text "..."] [--tags ...] [--domain ...] [--status ...] [--limit ...]`
    - PowerShell: `{SCRIPT_PS} -Text "..." -Tags "..." -Domain "..." -Status "..." -Limit N`
 3. The script returns a JSON array. Display it as a compact table: `id | statement (truncated to 100 chars) | domain | tags | score`.
-4. **Do not** auto-fetch full rule bodies. If the user asks for details, suggest `/speckit.byte-sized.show <id>`.
+4. **Do not** auto-fetch full bite bodies. If the user asks for details, suggest `/speckit.byte-sized.show <id>`.
 5. If the projection appears to be truncated (more than `--limit` matches exist), tell the user how to narrow it (more specific `--tags`, `--domain`, or a longer `--text` query).
 
 ## Output
 
-A compact list — one line per rule — ordered by score descending. No bodies, no rationale; just the projection fields.
+A compact list — one line per bite — ordered by score descending. No bodies, no rationale; just the projection fields.

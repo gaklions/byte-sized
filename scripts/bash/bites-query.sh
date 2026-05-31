@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# rules-query.sh — token-efficient projection from the rules index.
+# bites-query.sh — token-efficient projection from the bites index.
 #
 # Usage:
-#   rules-query.sh [--text "free text"] [--tags tag1,tag2] [--domain d1,d2]
+#   bites-query.sh [--text "free text"] [--tags tag1,tag2] [--domain d1,d2]
 #                  [--status active,draft] [--limit N] [--include-drafts]
 #                  [--ids id1,id2]
 #
@@ -33,13 +33,13 @@ while (( $# > 0 )); do
     --limit) LIMIT="$2"; shift 2 ;;
     --include-drafts) INCLUDE_DRAFTS=1; shift ;;
     --ids) IDS="$2"; shift 2 ;;
-    *) echo "rules-query: unknown arg: $1" >&2; exit 2 ;;
+    *) echo "bites-query: unknown arg: $1" >&2; exit 2 ;;
   esac
 done
 
 ROOT="$(bs_repo_root)"
-RULES_DIR="$(bs_rules_dir "$ROOT")"
-INDEX="$RULES_DIR/index.json"
+BITES_DIR="$(bs_bites_dir "$ROOT")"
+INDEX="$BITES_DIR/index.json"
 CFG="$(bs_config_path "$ROOT")"
 
 if [[ ! -f "$INDEX" ]]; then
@@ -61,7 +61,7 @@ TEXT_TOKENS_JSON="$(printf '%s' "$TEXT" | tr 'A-Z' 'a-z' | tr -c 'a-z0-9' '\n' \
 # Drafts: optionally include staged drafts from _drafts/*.yml as virtual entries.
 DRAFTS_JSON='[]'
 if (( INCLUDE_DRAFTS )); then
-  drafts_dir="$RULES_DIR/$(bs_cfg "$CFG" '.extraction.drafts_dir' '_drafts')"
+  drafts_dir="$BITES_DIR/$(bs_cfg "$CFG" '.extraction.drafts_dir' '_drafts')"
   if [[ -d "$drafts_dir" ]]; then
     DRAFTS_JSON="$(find "$drafts_dir" -type f \( -name '*.yml' -o -name '*.yaml' \) -print0 \
       | xargs -0 -I {} yq eval -o=json '. | (.[] // .)' {} 2>/dev/null \
@@ -82,7 +82,7 @@ jq -n \
 '
   def split_csv($s): if ($s | length) == 0 then [] else ($s | split(",") | map(. | ascii_downcase | gsub("^\\s+|\\s+$"; ""))) end;
 
-  ($idx[0].rules + $drafts) as $all
+  ($idx[0].bites + $drafts) as $all
   | split_csv($tags_csv)     as $want_tags
   | split_csv($domains_csv)  as $want_domains
   | split_csv($statuses_csv) as $want_statuses
@@ -113,10 +113,10 @@ jq -n \
       | $r + { score: $score, _rs: $rs, _rd: $rd, _rt: $rt }
     )
   | map(select(
-      (($want_statuses | length) == 0 or ($want_statuses | index(._rs)))
-      and (($want_domains | length) == 0 or ($want_domains | index(._rd)))
+      (($want_statuses | length) == 0 or (._rs | IN($want_statuses[])))
+      and (($want_domains | length) == 0 or (._rd | IN($want_domains[])))
       and (($want_tags | length) == 0 or (any(._rt[]; . as $t | $want_tags | index($t))))
-      and (($want_ids | length) == 0 or ($want_ids | index(.id | ascii_downcase)))
+      and (($want_ids | length) == 0 or ((.id | ascii_downcase) | IN($want_ids[])))
     ))
   | map(select(
       ($tokens | length) == 0 and ($want_tags | length) == 0 and ($want_domains | length) == 0
@@ -124,5 +124,5 @@ jq -n \
     ))
   | sort_by(-.score)
   | .[:$limit]
-  | map({id, statement, domain, tags, status, score: (.score | . * 1000 | floor) / 1000})
+  | map({id, statement, domain, tags, status, score: ((.score | . * 1000 | floor) / 1000)})
 '

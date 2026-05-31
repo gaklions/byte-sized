@@ -1,13 +1,13 @@
 ---
-description: "Hook-only entry point: surface a compact projection of relevant rules for the active phase."
+description: "Hook-only entry point: surface a compact projection of relevant bites for the active phase."
 scripts:
-  sh: ../../scripts/bash/rules-query.sh
-  ps: ../../scripts/powershell/rules-query.ps1
+  sh: ../../scripts/bash/bites-query.sh
+  ps: ../../scripts/powershell/bites-query.ps1
 ---
 
 # /speckit.byte-sized.surface
 
-**Hook-only.** Used by `before_specify`, `before_plan`, and `before_implement` to inject a tiny, relevance-ranked projection of business rules into the active phase's context. Not intended for direct user invocation (use `/speckit.byte-sized.query` instead).
+**Hook-only.** Used by `before_specify`, `before_plan`, and `before_implement` to inject a tiny, relevance-ranked projection of business bites into the active phase's context. Not intended for direct user invocation (use `/speckit.byte-sized.query` instead).
 
 ## User Input
 
@@ -31,11 +31,11 @@ $ARGUMENTS
    - PowerShell: `{SCRIPT_PS} -Text "<seed>" -Domain "<hint>" -Status active`
 5. Emit the JSON array into the host command's context, wrapped in a short header:
    ```
-   ## Relevant business rules (byte-sized projection)
+   ## Relevant business bites (byte-sized projection)
    _Showing top N by relevance. Use `/speckit.byte-sized.show <id>` for details._
    <JSON>
    ```
-6. **Do not** fetch any full rule bodies. Do not call `rules-get`. The host command (`specify`, `plan`, `implement`) is responsible for citing rule ids it actually uses with `[BR-...]` markers.
+6. **Do not** fetch any full bite bodies. Do not call `bites-get`. The host command (`specify`, `plan`, `implement`) is responsible for citing bite ids it actually uses with `[BB-...]` markers.
 7. If the projection JSON exceeds `relevance.max_projection_kb` (config; default 8 KB), truncate to the first N entries and append a footer: `_(truncated; refine with --tags or --domain)_`.
 
 ## Output

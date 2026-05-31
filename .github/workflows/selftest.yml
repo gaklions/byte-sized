@@ -12,6 +12,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
       - name: Install jq + yq
         run: |
           sudo apt-get update
@@ -23,12 +26,17 @@ jobs:
         run: chmod +x scripts/bash/*.sh selftest/scripts/*.sh
       - name: Run selftest
         run: bash selftest/scripts/selftest.sh
+      - name: Portal smoke (start, curl, stop)
+        run: bash selftest/scripts/portal-smoke.sh
 
   powershell:
     name: powershell (windows-latest)
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
       - name: Install jq + yq
         shell: pwsh
         run: |
@@ -41,3 +49,7 @@ jobs:
       - name: Run selftest
         shell: pwsh
         run: pwsh -NoProfile -File selftest/scripts/selftest.ps1
+      - name: Portal smoke (start, curl, stop)
+        shell: pwsh
+        run: pwsh -NoProfile -File selftest/scripts/portal-smoke.ps1
+

@@ -1,4 +1,4 @@
-# rules-get.ps1 — fetch one or more rules by id, optionally with N-hop neighbours.
+# bites-get.ps1 — fetch one or more bites by id, optionally with N-hop neighbours.
 
 [CmdletBinding()]
 param(
@@ -23,46 +23,32 @@ while ($i -lt $Ids.Count) {
         default       { $cleanIds += $a; $i++ }
     }
 }
-if ($cleanIds.Count -eq 0) { throw "rules-get: at least one id is required" }
+if ($cleanIds.Count -eq 0) { throw "bites-get: at least one id is required" }
 
 $root = Get-BsRepoRoot
-$rulesDir = Get-BsRulesDir -Root $root
-$index = Join-Path $rulesDir 'index.json'
-if (-not (Test-Path $index)) { throw "byte-sized: index missing; run rules-index.ps1" }
+$bitesDir = Get-BsBitesDir -Root $root
+$index = Join-Path $bitesDir 'index.json'
+if (-not (Test-Path $index)) { throw "byte-sized: index missing; run bites-index.ps1" }
 
 $expanded = ($cleanIds | ConvertTo-Json -Compress)
 if ($cleanIds.Count -eq 1) { $expanded = "[`"$($cleanIds[0])`"]" }
 
 for ($h = 0; $h -lt $Neighbors; $h++) {
-    $expanded = & jq --slurpfile idx $index --argjson seeds $expanded '
-        ($idx[0].rules) as $all
-        | ($seeds + (
-            $all | map(select(.id as $i | $seeds | index($i)))
-                 | map(.edges // {})
-                 | map([
-                     (.relates_to // []),
-                     (.depends_on // []),
-                     (.supersedes // []),
-                     (.conflicts_with // []),
-                     (.related_by_others // []),
-                     (.depended_on_by // []),
-                     (.superseded_by_others // []),
-                     (.conflicts_with_others // [])
-                   ] | add)
-                 | add // []
-          )) | unique
-    '
+    $hopFilter = '($idx[0].bites) as $all | ($seeds + ($all | map(select(.id as $i | $seeds | index($i))) | map(.edges // {}) | map([(.relates_to // []), (.depends_on // []), (.supersedes // []), (.conflicts_with // []), (.related_by_others // []), (.depended_on_by // []), (.superseded_by_others // []), (.conflicts_with_others // [])] | add) | add // [])) | unique'
+    # -n: don't read stdin (filter only uses --slurpfile + --argjson). Without
+    # this jq blocks indefinitely when no input is piped.
+    $expanded = & jq -n -c --slurpfile idx $index --argjson seeds $expanded $hopFilter
 }
 
 $results = '[]'
-foreach ($id in (& jq -r '.[]' --argjson e $expanded -n '$e')) {
-    $path = (& jq -r --arg id $id '.rules[] | select(.id == $id) | .path // ""' $index).Trim()
-    if (-not $path) { Write-Warning "rules-get: id '$id' not found"; continue }
+foreach ($id in ($expanded | & jq -r '.[]')) {
+    $path = (& jq -r --arg id $id '.bites[] | select(.id == $id) | .path // ""' $index).Trim()
+    if (-not $path) { Write-Warning "bites-get: id '$id' not found"; continue }
     $abs = Join-Path $root $path
     $fmJson = Get-BsFrontmatterJson -File $abs
     $body = Get-BsBody -File $abs
-    $rec = & jq -n --argjson fm $fmJson --arg body $body --arg path $path '$fm + {body: $body, path: $path}'
-    $results = $results | & jq --argjson r $rec '. + [$r]'
+    $rec = & jq -n -c --argjson fm $fmJson --arg body $body --arg path $path '$fm + {body: $body, path: $path}'
+    $results = $results | & jq -c --argjson r $rec '. + [$r]'
 }
 
 if ($Format -eq 'markdown') {

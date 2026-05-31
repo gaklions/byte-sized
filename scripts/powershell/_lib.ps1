@@ -4,6 +4,14 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+# Force UTF-8 across all stdin/stdout pipelines so multi-byte characters (en-dashes, curly quotes, etc.)
+# survive the parent-PS -> child-pwsh -> yq -> jq -> Set-Content chain without being re-encoded through the
+# Windows OEM codepage at every hop.
+$utf8NoBom = [System.Text.UTF8Encoding]::new($false)
+[Console]::OutputEncoding = $utf8NoBom
+[Console]::InputEncoding  = $utf8NoBom
+$OutputEncoding           = $utf8NoBom
+
 function Get-BsRepoRoot {
     $dir = (Get-Location).Path
     while ($dir -and (Split-Path $dir -Parent) -ne $dir) {
@@ -30,10 +38,10 @@ function Get-BsCfg {
     return $val.Trim()
 }
 
-function Get-BsRulesDir {
+function Get-BsBitesDir {
     param([string]$Root)
     $cfg = Get-BsConfigPath -Root $Root
-    $rel = Get-BsCfg -Cfg $cfg -Path '.storage.rules_dir' -Default '.specify/rules'
+    $rel = Get-BsCfg -Cfg $cfg -Path '.storage.bites_dir' -Default '.specify/bites'
     return (Join-Path $Root $rel)
 }
 
@@ -72,13 +80,26 @@ function Get-BsBody {
 
 function Invoke-BsWithLock {
     param([string]$LockPath, [scriptblock]$Action)
+    # Re-entrance: bash's flock is no-op when re-acquired on the same FD in the
+    # same process. The PowerShell side calls one bites-* script from another
+    # (e.g. bites-add → bites-index) and both wrap their work in this lock, so
+    # we track holders in $global: to allow re-entry within one process while
+    # still serialising across processes.
+    if (-not (Test-Path variable:global:BsActiveLocks)) { $global:BsActiveLocks = @{} }
+    $key = $LockPath
+    if ($global:BsActiveLocks.ContainsKey($key)) {
+        & $Action
+        return
+    }
     $dir = Split-Path $LockPath -Parent
     if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Path $dir | Out-Null }
     $stream = $null
     try {
         $stream = [System.IO.File]::Open($LockPath, 'OpenOrCreate', 'ReadWrite', 'None')
+        $global:BsActiveLocks[$key] = $true
         & $Action
     } finally {
+        $global:BsActiveLocks.Remove($key) | Out-Null
         if ($stream) { $stream.Dispose() }
     }
 }
@@ -87,7 +108,7 @@ function ConvertTo-BsSlug {
     param([string]$Text)
     $s = ($Text ?? '').ToLowerInvariant()
     $s = ($s -replace '[^a-z0-9]+', '-').Trim('-')
-    if (-not $s) { return 'rule' }
+    if (-not $s) { return 'bite' }
     return $s
 }
 

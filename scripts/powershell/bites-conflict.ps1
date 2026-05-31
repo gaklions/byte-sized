@@ -1,4 +1,4 @@
-# rules-conflict.ps1 — flag candidate conflicts between rules.
+# bites-conflict.ps1 — flag candidate conflicts between bites.
 
 [CmdletBinding()]
 param(
@@ -10,19 +10,19 @@ param(
 Assert-BsTools -Tools @('jq','yq')
 
 $root = Get-BsRepoRoot
-$rulesDir = Get-BsRulesDir -Root $root
-$index = Join-Path $rulesDir 'index.json'
+$bitesDir = Get-BsBitesDir -Root $root
+$index = Join-Path $bitesDir 'index.json'
 $cfg = Get-BsConfigPath -Root $root
 
 if (-not (Test-Path $index)) { Write-Output '[]'; return }
 
-$rules = & jq '[.rules[] | select(.status == "active") | {id, statement, domain, tags}]' $index
+$bites = & jq -c '[.bites[] | select(.status == "active") | {id, statement, domain, tags}]' $index
 if ($Stub -and (Test-Path $Stub)) {
-    $stubJson = & yq eval -o=json '.' $Stub
-    $rules = & jq --argjson s $stubJson '. + [($s + {id: ($s.id // "STUB")})]' --argjson r $rules -n '$r'
+    $stubJson = & yq eval -o=json -I=0 '.' $Stub
+    $bites = $bites | & jq -c --argjson s $stubJson '. + [($s + {id: ($s.id // "STUB")})]'
 }
 
-$antonyms = & yq eval -o=json '.conflict_detection.antonym_pairs // []' $cfg
+$antonyms = & yq eval -o=json -I=0 '.conflict_detection.antonym_pairs // []' $cfg
 
 $filter = @'
 def low($s): ($s // "" | ascii_downcase);
@@ -43,4 +43,12 @@ def contains_phrase($haystack; $needle):
   | { from: $a.id, to: $b.id, domain: $a.domain, triggers: $triggers } ]
 '@
 
-& jq --argjson rs $rules --argjson ant $antonyms --arg only ($Id ?? '') $filter -n
+# Multi-line jq filter mangled when passed as native arg on Windows; use -f.
+$filterFile = New-TemporaryFile
+try {
+    $filter | Set-Content -LiteralPath $filterFile -Encoding utf8
+    & jq -n --argjson rs $bites --argjson ant $antonyms --arg only ($Id ?? '') -f $filterFile
+}
+finally {
+    Remove-Item -LiteralPath $filterFile -Force -ErrorAction SilentlyContinue
+}

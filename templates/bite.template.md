@@ -1,8 +1,8 @@
 ---
-id: BR-XXX-000
-statement: "One-sentence declarative rule statement."
+id: BB-XXX-000
+statement: "One-sentence declarative bite statement."
 rationale: |
-  Why this rule exists. Multi-line allowed.
+  Why this bite exists. Multi-line allowed.
 domain: ""
 tags: []
 status: draft
@@ -24,7 +24,7 @@ Surrounding business situation.
 
 ## Implications
 
-What this rule forces downstream (architecture, tests, UX).
+What this bite forces downstream (architecture, tests, UX).
 
 ## Examples
 

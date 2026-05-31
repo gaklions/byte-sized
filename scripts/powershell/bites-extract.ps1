@@ -1,4 +1,4 @@
-# rules-extract.ps1 — stage candidate rules for human review.
+# bites-extract.ps1 — stage candidate bites for human review.
 
 [CmdletBinding()]
 param(
@@ -11,10 +11,10 @@ param(
 Assert-BsTools -Tools @('jq','yq')
 
 $root = Get-BsRepoRoot
-$rulesDir = Get-BsRulesDir -Root $root
+$bitesDir = Get-BsBitesDir -Root $root
 $cfg = Get-BsConfigPath -Root $root
 $draftsRel = Get-BsCfg -Cfg $cfg -Path '.extraction.drafts_dir' -Default '_drafts'
-$draftsDir = Join-Path $rulesDir $draftsRel
+$draftsDir = Join-Path $bitesDir $draftsRel
 if (-not (Test-Path $draftsDir)) { New-Item -ItemType Directory -Path $draftsDir | Out-Null }
 
 $ts = (Get-Date).ToUniversalTime().ToString('yyyyMMddTHHmmssZ')
@@ -22,42 +22,29 @@ $feat = if ($Feature) { $Feature } else { 'unscoped' }
 if (-not $Out) { $Out = Join-Path $draftsDir "$feat-$ts.yml" }
 
 $stdin = [Console]::In.ReadToEnd()
-if (-not $stdin) { throw "rules-extract: pipe a YAML array of candidate stubs to stdin" }
+if (-not $stdin) { throw "bites-extract: pipe a YAML array of candidate stubs to stdin" }
 
 $candidates = $stdin | & yq eval -o=json '.' -
-$type = (& jq -r 'type' --argjson c $candidates -n '$c').Trim()
-if ($type -ne 'array') { throw "rules-extract: stdin must be a YAML array of stubs" }
+$type = ($candidates | & jq -r 'type').Trim()
+if ($type -ne 'array') { throw "bites-extract: stdin must be a YAML array of stubs" }
 
-$valid = & jq '[ .[] | select((.statement // "") | length > 0) ]' --argjson c $candidates -n '$c'
+$valid = $candidates | & jq -c '[ .[] | select((.statement // "") | length > 0) ]'
 
-$index = Join-Path $rulesDir 'index.json'
+$index = Join-Path $bitesDir 'index.json'
 if (Test-Path $index) {
-    $surviving = & jq --slurpfile idx $index '
-        def tokens($s): ($s // "" | ascii_downcase | gsub("[^a-z0-9 ]"; " ") | split(" ") | map(select(length>=3)));
-        def overlap($a; $b): if (($a + $b) | length) == 0 then 0
-          else ([$a[] | select(. as $t | $b | index($t))] | length) /
-               (([$a, $b] | add | unique) | length)
-          end;
-        . as $cands
-        | $idx[0].rules as $existing
-        | $cands
-        | map(. as $c
-            | (tokens($c.statement)) as $ct
-            | if any($existing[]; (tokens(.statement) as $et | overlap($ct; $et) >= 0.7))
-                then empty else $c end)
-    ' --argjson c $valid -n '$c'
+    $dedupFilter = 'def tokens($s): ($s // "" | ascii_downcase | gsub("[^a-z0-9 ]"; " ") | split(" ") | map(select(length>=3))); def overlap($a; $b): if (($a + $b) | length) == 0 then 0 else ([$a[] | select(. as $t | $b | index($t))] | length) / (([$a, $b] | add | unique) | length) end; . as $cands | $idx[0].bites as $existing | $cands | map(. as $c | (tokens($c.statement)) as $ct | if any($existing[]; (tokens(.statement) as $et | overlap($ct; $et) >= 0.7)) then empty else $c end)'
+    $surviving = $valid | & jq -c --slurpfile idx $index $dedupFilter
 } else {
     $surviving = $valid
 }
 
-$surviving = & jq --arg f $feat --arg src ($SourceFile ?? '') '
-    map(. + {status: "draft", source: ((.source // {}) + {feature: $f, spec: $src})})
-' --argjson c $surviving -n '$c'
+$enrichFilter = 'map(. + {status: "draft", source: ((.source // {}) + {feature: $f, spec: $src})})'
+$surviving = $surviving | & jq -c --arg f $feat --arg src ($SourceFile ?? '') $enrichFilter
 
 $surviving | & yq eval -P '.' - | Set-Content -LiteralPath $Out -Encoding utf8
 
-$validLen = [int](& jq 'length' --argjson c $valid -n '$c').Trim()
-$survLen  = [int](& jq 'length' --argjson c $surviving -n '$c').Trim()
+$validLen = [int]($valid | & jq 'length').Trim()
+$survLen  = [int]($surviving | & jq 'length').Trim()
 
 [pscustomobject]@{
     drafts_file = ($Out.Substring($root.Length + 1)).Replace('\','/')

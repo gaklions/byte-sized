@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# rules-validate.sh — check graph integrity.
+# bites-validate.sh — check graph integrity.
 #
 # Checks: id uniqueness, required frontmatter fields, broken edges,
 # dangling supersession, status consistency, domain whitelist.
@@ -13,8 +13,8 @@ source "$SCRIPT_DIR/_lib.sh"
 bs_require_tools jq yq
 
 ROOT="$(bs_repo_root)"
-RULES_DIR="$(bs_rules_dir "$ROOT")"
-INDEX="$RULES_DIR/index.json"
+BITES_DIR="$(bs_bites_dir "$ROOT")"
+INDEX="$BITES_DIR/index.json"
 CFG="$(bs_config_path "$ROOT")"
 
 errors=()
@@ -22,17 +22,17 @@ warnings=()
 
 if [[ ! -f "$INDEX" ]]; then
   echo "byte-sized: index missing; rebuilding..." >&2
-  "$SCRIPT_DIR/rules-index.sh" >/dev/null
+  "$SCRIPT_DIR/bites-index.sh" >/dev/null
 fi
 
 domains_whitelist="$(yq eval -o=json '.domains // []' "$CFG")"
 
-# Required fields per rule.
+# Required fields per bite.
 while IFS= read -r r; do
   id="$(jq -r '.id // ""' <<< "$r")"
   for f in id statement domain status; do
     v="$(jq -r --arg f "$f" '.[$f] // ""' <<< "$r")"
-    if [[ -z "$v" ]]; then errors+=("missing field '$f' in rule ${id:-<unknown>}"); fi
+    if [[ -z "$v" ]]; then errors+=("missing field '$f' in bite ${id:-<unknown>}"); fi
   done
   st="$(jq -r '.status' <<< "$r")"
   case "$st" in
@@ -43,16 +43,16 @@ while IFS= read -r r; do
   if ! jq -e --arg d "$dom" 'index($d)' <<< "$domains_whitelist" >/dev/null; then
     warnings+=("$id uses domain '$dom' not in config.domains")
   fi
-done < <(jq -c '.rules[]' "$INDEX")
+done < <(jq -c '.bites[]' "$INDEX")
 
 # Id uniqueness.
-dupes="$(jq -r '.rules | group_by(.id) | map(select(length>1)) | .[].[0].id' "$INDEX")"
+dupes="$(jq -r '.bites | group_by(.id) | map(select(length>1)) | .[].[0].id' "$INDEX")"
 if [[ -n "$dupes" ]]; then
   while IFS= read -r d; do errors+=("duplicate id: $d"); done <<< "$dupes"
 fi
 
 # Broken edges + dangling supersession.
-all_ids="$(jq -r '.rules[].id' "$INDEX" | sort -u)"
+all_ids="$(jq -r '.bites[].id' "$INDEX" | sort -u)"
 while IFS= read -r r; do
   id="$(jq -r '.id' <<< "$r")"
   for rel in relates_to supersedes depends_on conflicts_with; do
@@ -68,7 +68,7 @@ while IFS= read -r r; do
   if [[ "$st" == "superseded" && -z "$sb" ]]; then
     warnings+=("$id is 'superseded' but source.superseded_by is empty")
   fi
-done < <(jq -c '.rules[]' "$INDEX")
+done < <(jq -c '.bites[]' "$INDEX")
 
 # Emit report.
 report="$(jq -n \

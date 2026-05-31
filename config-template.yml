@@ -2,15 +2,15 @@
 # All values shown are defaults; uncomment + adjust to override.
 
 storage:
-  # Where rule files and the index live (relative to repo root).
-  rules_dir: ".specify/rules"
-  # Prefix used when allocating new rule IDs (BR-<DOMAIN>-NNN).
-  id_prefix: "BR"
+  # Where bite files and the index live (relative to repo root).
+  bites_dir: ".specify/bites"
+  # Prefix used when allocating new bite IDs (BB-<DOMAIN>-NNN).
+  id_prefix: "BB"
 
 relevance:
-  # Hard cap on the number of rules a `query`/`surface` call returns.
+  # Hard cap on the number of bites a `query`/`surface` call returns.
   max_results: 12
-  # Minimum lexical score (0-1) before a rule is included in results.
+  # Minimum lexical score (0-1) before a bite is included in results.
   min_score: 0.2
   # N-hop neighbour expansion for `show` (and optionally `surface`).
   include_neighbors: 1
@@ -22,12 +22,26 @@ extraction:
   auto_propose: true
   # When true, drafts must be promoted via `byte-sized.add` before becoming active.
   require_review: true
-  # Subdirectory under rules_dir where staged drafts live.
+  # Subdirectory under bites_dir where staged drafts live.
   drafts_dir: "_drafts"
+
+portal:
+  # Loopback host the review portal binds to. Non-loopback values are refused at startup.
+  host: "127.0.0.1"
+  # TCP port for the review portal.
+  port: 7821
+  # If true, the wrapper scripts open the user's default browser after the server is up.
+  open_browser: true
+  # Auto-handle thresholds for the Drafts review pane (0.0 disables each).
+  # `novel_below` auto-approves stubs whose closest-active token-overlap score is below this.
+  # `duplicate_above` auto-rejects stubs whose closest-active score is at or above this.
+  auto_handle:
+    novel_below: 0.0
+    duplicate_above: 0.0
 
 conflict_detection:
   enabled: true
-  # Token pairs that, when both appear across two rules in the same domain, trigger a conflict candidate.
+  # Token pairs that, when both appear across two bites in the same domain, trigger a conflict candidate.
   # Add domain-specific antonym pairs as needed.
   antonym_pairs:
     - ["must", "must not"]
@@ -36,7 +50,7 @@ conflict_detection:
     - ["enable", "disable"]
     - ["always", "never"]
 
-# Whitelist of allowed domains. New domains can be added; rules-validate warns on values outside this list.
+# Whitelist of allowed domains. New domains can be added; bites-validate warns on values outside this list.
 domains:
   - architecture
   - auth

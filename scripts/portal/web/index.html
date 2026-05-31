@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>byte-sized · review portal</title>
+  <link rel="stylesheet" href="/assets/styles.css" />
+  <script src="https://unpkg.com/cytoscape@3.30.4/dist/cytoscape.min.js"></script>
+  <script src="https://unpkg.com/layout-base@2.0.1/layout-base.js"></script>
+  <script src="https://unpkg.com/cose-base@2.2.0/cose-base.js"></script>
+  <script src="https://unpkg.com/cytoscape-fcose@2.2.0/cytoscape-fcose.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-dot"></span>
+      <span class="brand-name">byte-sized</span>
+      <span class="brand-sub">review portal</span>
+    </div>
+    <nav class="tabs">
+      <button data-tab="drafts"  class="tab is-active">Drafts <span id="drafts-count" class="pill">0</span></button>
+      <button data-tab="graph"   class="tab">Graph</button>
+      <button data-tab="detail"  class="tab">Bite detail</button>
+    </nav>
+    <div class="status">
+      <span id="repo-label" class="repo">…</span>
+      <button id="refresh-btn" class="ghost" title="Reload index + drafts (r)">Refresh</button>
+      <button id="help-btn"    class="ghost" title="Show keyboard shortcuts (?)">?</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- DRAFTS TAB -->
+    <section id="tab-drafts" class="tab-panel is-active">
+      <aside class="left-rail">
+        <div class="rail-header">
+          <h3>Draft files</h3>
+          <span id="drafts-total" class="muted small">0 stubs</span>
+        </div>
+        <div class="filters">
+          <input id="filter-text"   type="search" placeholder="Filter statement…" />
+          <select id="filter-domain"><option value="">All domains</option></select>
+          <input id="filter-tag"    type="search" placeholder="Tag…" />
+          <label class="range">
+            <span>Closest-active overlap ≤</span>
+            <input id="filter-overlap" type="range" min="0" max="100" value="100" />
+            <span id="filter-overlap-val">1.00</span>
+          </label>
+        </div>
+        <ul id="drafts-list" class="drafts-list"></ul>
+      </aside>
+
+      <section class="center-pane">
+        <div id="stub-empty" class="empty-state">
+          <p>Select a draft stub on the left to review.</p>
+          <p class="muted small">Shortcuts: <kbd>j</kbd>/<kbd>k</kbd> navigate · <kbd>a</kbd> approve · <kbd>r</kbd> reject · <kbd>e</kbd> focus edit · <kbd>?</kbd> help</p>
+        </div>
+        <article id="stub-editor" class="hidden">
+          <header class="stub-header">
+            <div>
+              <h2 id="stub-title">…</h2>
+              <p id="stub-source" class="muted small"></p>
+            </div>
+            <div class="header-actions">
+              <button id="stub-approve" class="primary">Approve →</button>
+              <button id="stub-reject"  class="danger">Reject</button>
+            </div>
+          </header>
+
+          <div class="stub-grid">
+            <div>
+              <label>Statement</label>
+              <textarea id="edit-statement" rows="2"></textarea>
+              <label>Rationale</label>
+              <textarea id="edit-rationale" rows="6"></textarea>
+              <div class="row">
+                <div>
+                  <label>Domain</label>
+                  <select id="edit-domain"></select>
+                </div>
+                <div>
+                  <label>Tags (comma-separated)</label>
+                  <input id="edit-tags" type="text" />
+                </div>
+              </div>
+              <details class="edges">
+                <summary>Edges (advanced)</summary>
+                <div class="row">
+                  <div>
+                    <label>relates_to</label>
+                    <input id="edit-relates"  type="text" placeholder="BB-X-001,BB-X-002" />
+                  </div>
+                  <div>
+                    <label>depends_on</label>
+                    <input id="edit-depends"  type="text" />
+                  </div>
+                </div>
+                <div class="row">
+                  <div>
+                    <label>supersedes</label>
+                    <input id="edit-supersedes" type="text" />
+                  </div>
+                  <div>
+                    <label>conflicts_with</label>
+                    <input id="edit-conflicts"  type="text" />
+                  </div>
+                </div>
+              </details>
+            </div>
+            <aside class="diff-pane">
+              <h4>Closest active bite</h4>
+              <div id="closest-block" class="muted">No similar active bite.</div>
+            </aside>
+          </div>
+        </article>
+      </section>
+
+      <footer class="bulk-bar">
+        <span id="bulk-count" class="muted small">0 selected</span>
+        <div class="grow"></div>
+        <button id="bulk-auto" class="ghost" title="Auto-approve stubs with no close active match">Auto-handle…</button>
+        <button id="bulk-reject" class="danger">Reject selected</button>
+        <button id="bulk-approve" class="primary">Approve selected</button>
+      </footer>
+    </section>
+
+    <!-- GRAPH TAB -->
+    <section id="tab-graph" class="tab-panel">
+      <aside class="left-rail">
+        <h3>Filters</h3>
+        <div class="filter-block">
+          <label>Domains</label>
+          <div id="graph-domains" class="chip-group"></div>
+        </div>
+        <div class="filter-block">
+          <label>Status</label>
+          <div id="graph-status" class="chip-group">
+            <label><input type="checkbox" value="active"     checked /> active</label>
+            <label><input type="checkbox" value="deprecated" checked /> deprecated</label>
+            <label><input type="checkbox" value="superseded"           /> superseded</label>
+          </div>
+        </div>
+        <div class="filter-block">
+          <label>Edge types</label>
+          <div id="graph-edges" class="chip-group">
+            <label><input type="checkbox" value="relates_to"     checked /> relates_to</label>
+            <label><input type="checkbox" value="depends_on"     checked /> depends_on</label>
+            <label><input type="checkbox" value="supersedes"     checked /> supersedes</label>
+            <label><input type="checkbox" value="conflicts_with" checked /> conflicts_with</label>
+          </div>
+        </div>
+        <button id="graph-fit" class="ghost">Fit to view</button>
+      </aside>
+      <div class="graph-host">
+        <div id="cy"></div>
+        <div id="graph-tip" class="graph-tip hidden"></div>
+      </div>
+    </section>
+
+    <!-- DETAIL TAB -->
+    <section id="tab-detail" class="tab-panel">
+      <div id="detail-empty" class="empty-state">
+        <p>Pick a bite (Graph tab, or search below) to inspect or edit it.</p>
+        <input id="detail-search" type="search" placeholder="Search bites by id or statement…" />
+        <ul id="detail-search-results" class="search-results"></ul>
+      </div>
+      <article id="detail-view" class="hidden">
+        <header class="detail-header">
+          <div>
+            <h2 id="detail-id">BB-...</h2>
+            <p id="detail-statement" class="lead"></p>
+            <p class="muted small" id="detail-meta"></p>
+          </div>
+          <div class="header-actions">
+            <a id="detail-open-vscode" class="ghost" target="_blank" rel="noopener">Open in VS Code</a>
+            <button id="detail-save" class="primary">Save changes</button>
+          </div>
+        </header>
+
+        <div class="detail-grid">
+          <div>
+            <label>Statement</label>
+            <textarea id="detail-edit-statement" rows="2"></textarea>
+            <div class="row">
+              <div>
+                <label>Domain</label>
+                <select id="detail-edit-domain"></select>
+              </div>
+              <div>
+                <label>Tags (comma-separated)</label>
+                <input id="detail-edit-tags" type="text" />
+              </div>
+              <div>
+                <label>Status</label>
+                <select id="detail-edit-status">
+                  <option value="active">active</option>
+                  <option value="deprecated">deprecated</option>
+                  <option value="superseded">superseded</option>
+                </select>
+              </div>
+            </div>
+            <label>Rationale</label>
+            <textarea id="detail-edit-rationale" rows="5"></textarea>
+
+            <h4>Edges</h4>
+            <div id="detail-edges"></div>
+            <div class="edge-add row">
+              <select id="edge-add-rel">
+                <option value="relates_to">relates_to</option>
+                <option value="depends_on">depends_on</option>
+                <option value="supersedes">supersedes</option>
+                <option value="conflicts_with">conflicts_with</option>
+              </select>
+              <input id="edge-add-target" placeholder="BB-..." />
+              <button id="edge-add-btn" class="ghost">Add edge</button>
+            </div>
+          </div>
+          <aside>
+            <h4>Body (read-only)</h4>
+            <pre id="detail-body" class="body-pre"></pre>
+            <h4>Inverse edges</h4>
+            <div id="detail-inverse" class="muted small"></div>
+          </aside>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <div id="help-modal" class="modal hidden">
+    <div class="modal-card">
+      <h3>Keyboard shortcuts</h3>
+      <table>
+        <tr><th>Drafts tab</th><th></th></tr>
+        <tr><td><kbd>j</kbd> / <kbd>k</kbd></td><td>Next / previous stub</td></tr>
+        <tr><td><kbd>a</kbd></td><td>Approve current stub</td></tr>
+        <tr><td><kbd>r</kbd></td><td>Reject current stub</td></tr>
+        <tr><td><kbd>x</kbd></td><td>Toggle selection of current stub</td></tr>
+        <tr><td><kbd>e</kbd></td><td>Focus the statement editor</td></tr>
+        <tr><th>Global</th><th></th></tr>
+        <tr><td><kbd>g</kbd> then <kbd>d</kbd> / <kbd>g</kbd> / <kbd>r</kbd></td><td>Drafts / Graph / Bite detail</td></tr>
+        <tr><td><kbd>?</kbd></td><td>Show this help</td></tr>
+        <tr><td><kbd>Esc</kbd></td><td>Close modals</td></tr>
+      </table>
+      <button class="primary" onclick="document.getElementById('help-modal').classList.add('hidden')">Close</button>
+    </div>
+  </div>
+
+  <div id="toast-root" class="toasts"></div>
+
+  <script src="/assets/app.js"      defer></script>
+  <script src="/assets/drafts.js"   defer></script>
+  <script src="/assets/graph.js"    defer></script>
+  <script src="/assets/detail.js"   defer></script>
+</body>
+</html>

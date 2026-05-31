@@ -1,4 +1,4 @@
-# rules-link.ps1 — add or remove an edge between two existing rules.
+# bites-link.ps1 — add or remove an edge between two existing bites.
 
 [CmdletBinding()]
 param(
@@ -13,23 +13,23 @@ param(
 Assert-BsTools -Tools @('jq','yq')
 
 $root = Get-BsRepoRoot
-$rulesDir = Get-BsRulesDir -Root $root
-$index = Join-Path $rulesDir 'index.json'
+$bitesDir = Get-BsBitesDir -Root $root
+$index = Join-Path $bitesDir 'index.json'
 
-Invoke-BsWithLock -LockPath (Join-Path $rulesDir '.index.lock') -Action {
-    $fromPath = (& jq -r --arg id $From '.rules[] | select(.id == $id) | .path // ""' $index).Trim()
-    $toPath   = (& jq -r --arg id $To   '.rules[] | select(.id == $id) | .path // ""' $index).Trim()
-    if (-not $fromPath) { throw "rules-link: $From not found" }
-    if (-not $toPath)   { throw "rules-link: $To not found" }
+Invoke-BsWithLock -LockPath (Join-Path $bitesDir '.index.lock') -Action {
+    $fromPath = (& jq -r --arg id $From '.bites[] | select(.id == $id) | .path // ""' $index).Trim()
+    $toPath   = (& jq -r --arg id $To   '.bites[] | select(.id == $id) | .path // ""' $index).Trim()
+    if (-not $fromPath) { throw "bites-link: $From not found" }
+    if (-not $toPath)   { throw "bites-link: $To not found" }
 
     $abs = Join-Path $root $fromPath
     $fmYaml = Get-BsFrontmatter -File $abs
     $body = Get-BsBody -File $abs
 
     if ($Remove) {
-        $newFm = $fmYaml | & yq eval ".edges.$Relation = ((.edges.$Relation // []) | unique - [`"$To`"])" -
+        $newFm = ($fmYaml | & yq eval ".edges.$Relation = ((.edges.$Relation // []) | unique - [`"$To`"])" -) -join "`n"
     } else {
-        $newFm = $fmYaml | & yq eval ".edges.$Relation = ((.edges.$Relation // []) + [`"$To`"] | unique)" -
+        $newFm = ($fmYaml | & yq eval ".edges.$Relation = ((.edges.$Relation // []) + [`"$To`"] | unique)" -) -join "`n"
     }
 
     @"
@@ -43,7 +43,7 @@ $body
         $target = Join-Path $root $toPath
         $tgtFm = Get-BsFrontmatter -File $target
         $tgtBody = Get-BsBody -File $target
-        $newTgt = $tgtFm | & yq eval ".status = `"superseded`" | .source.superseded_by = `"$From`"" -
+        $newTgt = ($tgtFm | & yq eval ".status = `"superseded`" | .source.superseded_by = `"$From`"" -) -join "`n"
         @"
 ---
 $newTgt
@@ -52,7 +52,7 @@ $tgtBody
 "@ | Set-Content -LiteralPath $target -Encoding utf8
     }
 
-    & "$PSScriptRoot/rules-index.ps1" | Out-Null
+    & "$PSScriptRoot/bites-index.ps1" | Out-Null
     $verb = if ($Remove) { 'removed' } else { 'added' }
-    Write-Host "byte-sized: $verb $From -[$Relation]-> $To"
+    [Console]::Error.WriteLine("byte-sized: $verb $From -[$Relation]-> $To")
 }

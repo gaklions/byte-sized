@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# rules-get.sh — fetch one or more rules by id, optionally with N-hop neighbours.
+# bites-get.sh — fetch one or more bites by id, optionally with N-hop neighbours.
 #
-# Usage: rules-get.sh <id> [<id> ...] [--neighbors N] [--format json|markdown]
+# Usage: bites-get.sh <id> [<id> ...] [--neighbors N] [--format json|markdown]
 
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -18,21 +18,21 @@ while (( $# > 0 )); do
   case "$1" in
     --neighbors) NEIGHBORS="$2"; shift 2 ;;
     --format) FORMAT="$2"; shift 2 ;;
-    --*) echo "rules-get: unknown flag: $1" >&2; exit 2 ;;
+    --*) echo "bites-get: unknown flag: $1" >&2; exit 2 ;;
     *) IDS+=("$1"); shift ;;
   esac
 done
 
 if (( ${#IDS[@]} == 0 )); then
-  echo "rules-get: at least one id is required" >&2
+  echo "bites-get: at least one id is required" >&2
   exit 2
 fi
 
 ROOT="$(bs_repo_root)"
-RULES_DIR="$(bs_rules_dir "$ROOT")"
-INDEX="$RULES_DIR/index.json"
+BITES_DIR="$(bs_bites_dir "$ROOT")"
+INDEX="$BITES_DIR/index.json"
 if [[ ! -f "$INDEX" ]]; then
-  echo "byte-sized: index missing; run rules-index.sh" >&2
+  echo "byte-sized: index missing; run bites-index.sh" >&2
   exit 1
 fi
 
@@ -42,7 +42,7 @@ expanded="$ids_json"
 hop=0
 while (( hop < NEIGHBORS )); do
   expanded="$(jq --slurpfile idx "$INDEX" --argjson seeds "$expanded" '
-    ($idx[0].rules) as $all
+    ($idx[0].bites) as $all
     | ($seeds + (
         $all | map(select(.id as $i | $seeds | index($i)))
              | map(.edges // {})
@@ -65,9 +65,9 @@ done
 # Resolve each id to its file path via the index, then assemble output.
 results='[]'
 for id in $(jq -r '.[]' <<< "$expanded"); do
-  path="$(jq -r --arg id "$id" '.rules[] | select(.id == $id) | .path // ""' "$INDEX")"
+  path="$(jq -r --arg id "$id" '.bites[] | select(.id == $id) | .path // ""' "$INDEX")"
   if [[ -z "$path" || ! -f "$ROOT/$path" ]]; then
-    echo "rules-get: id '$id' not found in index" >&2
+    echo "bites-get: id '$id' not found in index" >&2
     continue
   fi
   fm_json="$(bs_frontmatter_json "$ROOT/$path")"

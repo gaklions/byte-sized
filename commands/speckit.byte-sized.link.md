@@ -1,13 +1,13 @@
 ---
-description: "Add or remove an edge between two rules."
+description: "Add or remove an edge between two bites."
 scripts:
-  sh: ../../scripts/bash/rules-link.sh
-  ps: ../../scripts/powershell/rules-link.ps1
+  sh: ../../scripts/bash/bites-link.sh
+  ps: ../../scripts/powershell/bites-link.ps1
 ---
 
 # /speckit.byte-sized.link
 
-Manage edges between business rules.
+Manage edges between business bites.
 
 ## User Input
 

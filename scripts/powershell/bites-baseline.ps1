@@ -1,6 +1,6 @@
-# rules-baseline.ps1 — discover candidate source files for a brownfield baseline pass.
+# bites-baseline.ps1 — discover candidate source files for a brownfield baseline pass.
 #
-# Mirrors rules-baseline.sh. See its header for full flag docs.
+# Mirrors bites-baseline.sh. See its header for full flag docs.
 
 [CmdletBinding()]
 param(
@@ -31,22 +31,26 @@ try {
         }
     }
 
-    $defaultExcludes = 'node_modules/**,.git/**,.venv/**,venv/**,dist/**,build/**,out/**,target/**,coverage/**,.specify/rules/**,.specify/extensions/**,_drafts/**,_archive/**'
+    $defaultExcludes = 'node_modules/**,.git/**,.venv/**,venv/**,dist/**,build/**,out/**,target/**,coverage/**,.specify/bites/**,.specify/extensions/**,_drafts/**,_archive/**'
     $includesCsv = if ($Include) { $Include } else { Get-DefaultIncludes -s $Scope }
     $excludesCsv = if ($Exclude) { "$defaultExcludes,$Exclude" } else { $defaultExcludes }
 
     if ($Mode -eq 'stage') {
-        if (-not $Batch) { throw "rules-baseline: -Stage requires -Batch <label>" }
+        if (-not $Batch) { throw "bites-baseline: -Stage requires -Batch <label>" }
         $cfg = Get-BsConfigPath -Root $root
-        $rulesDir = Get-BsRulesDir -Root $root
+        $bitesDir = Get-BsBitesDir -Root $root
         $draftsRel = Get-BsCfg -Cfg $cfg -Path '.extraction.drafts_dir' -Default '_drafts'
-        $draftsDir = Join-Path $rulesDir $draftsRel
+        $draftsDir = Join-Path $bitesDir $draftsRel
         if (-not (Test-Path $draftsDir)) { New-Item -ItemType Directory -Path $draftsDir | Out-Null }
         $ts = (Get-Date).ToUniversalTime().ToString('yyyyMMddTHHmmssZ')
         $out = Join-Path $draftsDir "baseline-$Batch-$ts.yml"
-        $extract = Join-Path $PSScriptRoot 'rules-extract.ps1'
-        # Pipe stdin through to the extract script.
-        [Console]::In.ReadToEnd() | & $extract -SourceFile "baseline:$Batch" -Feature "baseline-$Batch" -Out $out
+        $extract = Join-Path $PSScriptRoot 'bites-extract.ps1'
+        # PowerShell pipes objects, not bytes, between cmdlets/scripts, so a child
+        # .ps1 invoked via `& $script` never sees stdin. Spawn a child pwsh process
+        # (a native executable from PS's perspective) so the piped string is written
+        # to its real stdin and bites-extract.ps1 can ReadToEnd() it.
+        $stdin = [Console]::In.ReadToEnd()
+        $stdin | & pwsh -NoProfile -File $extract -SourceFile "baseline:$Batch" -Feature "baseline-$Batch" -Out $out
         return
     }
 

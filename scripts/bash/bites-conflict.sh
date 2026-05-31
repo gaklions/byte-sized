@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
-# rules-conflict.sh — flag candidate conflicts between rules.
+# bites-conflict.sh — flag candidate conflicts between bites.
 #
-# Heuristic: for each pair of active rules in the same domain with at least one
+# Heuristic: for each pair of active bites in the same domain with at least one
 # shared tag, scan both statements for any configured antonym_pair (one side in
-# rule A, the other side in rule B). Emit those pairs as candidate conflicts.
+# bite A, the other side in bite B). Emit those pairs as candidate conflicts.
 #
 # Usage:
-#   rules-conflict.sh                  # scan whole graph
-#   rules-conflict.sh --id BR-AUTH-007 # restrict to pairs involving one id
-#   rules-conflict.sh --stub <yaml>    # check a not-yet-added stub against existing
+#   bites-conflict.sh                  # scan whole graph
+#   bites-conflict.sh --id BB-AUTH-007 # restrict to pairs involving one id
+#   bites-conflict.sh --stub <yaml>    # check a not-yet-added stub against existing
 
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -23,13 +23,13 @@ while (( $# > 0 )); do
   case "$1" in
     --id) ONLY_ID="$2"; shift 2 ;;
     --stub) STUB_FILE="$2"; shift 2 ;;
-    *) echo "rules-conflict: unknown arg: $1" >&2; exit 2 ;;
+    *) echo "bites-conflict: unknown arg: $1" >&2; exit 2 ;;
   esac
 done
 
 ROOT="$(bs_repo_root)"
-RULES_DIR="$(bs_rules_dir "$ROOT")"
-INDEX="$RULES_DIR/index.json"
+BITES_DIR="$(bs_bites_dir "$ROOT")"
+INDEX="$BITES_DIR/index.json"
 CFG="$(bs_config_path "$ROOT")"
 
 if [[ ! -f "$INDEX" ]]; then
@@ -37,16 +37,16 @@ if [[ ! -f "$INDEX" ]]; then
   exit 0
 fi
 
-# Build the rules set, optionally appending a stub.
-rules="$(jq '[.rules[] | select(.status == "active") | {id, statement, domain, tags}]' "$INDEX")"
+# Build the bites set, optionally appending a stub.
+bites="$(jq '[.bites[] | select(.status == "active") | {id, statement, domain, tags}]' "$INDEX")"
 if [[ -n "$STUB_FILE" && -f "$STUB_FILE" ]]; then
   stub_json="$(yq eval -o=json '.' "$STUB_FILE")"
-  rules="$(jq --argjson s "$stub_json" '. + [($s + {id: ($s.id // "STUB")})]' <<< "$rules")"
+  bites="$(jq --argjson s "$stub_json" '. + [($s + {id: ($s.id // "STUB")})]' <<< "$bites")"
 fi
 
 antonyms="$(yq eval -o=json '.conflict_detection.antonym_pairs // []' "$CFG")"
 
-jq --argjson rs "$rules" \
+jq --argjson rs "$bites" \
    --argjson ant "$antonyms" \
    --arg only "$ONLY_ID" \
 '

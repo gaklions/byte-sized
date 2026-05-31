@@ -52,13 +52,13 @@ bs_cfg() {
   fi
 }
 
-# Resolve the absolute rules_dir. Args: <repo-root>
-bs_rules_dir() {
+# Resolve the absolute bites_dir. Args: <repo-root>
+bs_bites_dir() {
   local root="$1"
   local cfg
   cfg="$(bs_config_path "$root")" || return 1
   local rel
-  rel="$(bs_cfg "$cfg" '.storage.rules_dir' '.specify/rules')"
+  rel="$(bs_cfg "$cfg" '.storage.bites_dir' '.specify/bites')"
   printf '%s\n' "$root/$rel"
 }
 
@@ -96,7 +96,7 @@ bs_slugify() {
   s="${s,,}"                         # lowercase
   s="$(printf '%s' "$s" | tr -c 'a-z0-9' '-')"
   s="$(printf '%s' "$s" | sed -E 's/-+/-/g; s/^-//; s/-$//')"
-  printf '%s\n' "${s:-rule}"
+  printf '%s\n' "${s:-bite}"
 }
 
 bs_today() {
